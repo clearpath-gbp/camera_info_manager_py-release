@@ -1,0 +1,13 @@
+Source: ros-noetic-camera-info-manager-py
+Section: misc
+Priority: extra
+Maintainer: Jack O'Quin <jack.oquin@gmail.com>
+Build-Depends: debhelper (>= 9.0.0), ros-noetic-camera-info-manager, ros-noetic-catkin, ros-noetic-rospy, ros-noetic-rostest, ros-noetic-rosunit, ros-noetic-sensor-msgs
+Homepage: http://ros.org/wiki/camera_info_manager_py
+Standards-Version: 3.9.2
+
+Package: ros-noetic-camera-info-manager-py
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ros-noetic-rospy, ros-noetic-sensor-msgs
+Description: Python interface for camera calibration information.
+ This ROS package provides a CameraInfo interface for Python camera drivers similar to the C++ camera_info_manager package.

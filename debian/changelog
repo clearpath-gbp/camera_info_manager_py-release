@@ -1,0 +1,57 @@
+ros-noetic-camera-info-manager-py (0.3.1-1focal) focal; urgency=high
+
+  * changelog
+  * Contributors: José Mastrangelo
+
+ -- Jack O'Quin <jack.oquin@gmail.com>  Thu, 18 Nov 2021 05:00:00 -0000
+
+ros-noetic-camera-info-manager-py (0.3.0-1focal) focal; urgency=high
+
+  * added CPR maintainer
+  * Release to Melodic and Noetic
+  * Contributors: Jack O'Quin, José Mastrangelo, Lucas Walter, Martin Pecka
+
+ -- Jack O'Quin <jack.oquin@gmail.com>  Thu, 18 Nov 2021 05:00:00 -0000
+
+ros-noetic-camera-info-manager-py (0.2.3-1focal) focal; urgency=high
+
+  * Only use rostest when testing enabled, thanks to Lukas Bulwahn.
+  * Move repository to ros-perception.
+  * Contributors: Jack O'Quin, Lukas Bulwahn
+
+ -- Jack O'Quin <jack.oquin@gmail.com>  Tue, 13 May 2014 04:00:00 -0000
+
+ros-noetic-camera-info-manager-py (0.2.2-1focal) focal; urgency=high
+
+  * Add namespace parameter to constructor, so a driver can handle multiple cameras. Enhancement thanks to Martin Llofriu.
+  * Make unit tests conditional on ``CATKIN_ENABLE_TESTING``.
+  * Release to Groovy and Hydro.
+  * Contributors: Jack O'Quin, mllofriu
+
+ -- Jack O'Quin <jack.oquin@gmail.com>  Thu, 25 Jul 2013 04:00:00 -0000
+
+ros-noetic-camera-info-manager-py (0.2.1-1focal) focal; urgency=high
+
+  * Set null calibration even when URL invalid (#7).
+  * Release to Groovy and Hydro.
+  * Contributors: Jack O'Quin
+
+ -- Jack O'Quin <jack.oquin@gmail.com>  Sun, 14 Apr 2013 04:00:00 -0000
+
+ros-noetic-camera-info-manager-py (0.2.0-1focal) focal; urgency=high
+
+  * Convert to catkin.
+  * Remove roslib dependency.
+  * Release to Groovy and Hydro.
+  * Contributors: Jack O'Quin
+
+ -- Jack O'Quin <jack.oquin@gmail.com>  Thu, 28 Mar 2013 04:00:00 -0000
+
+ros-noetic-camera-info-manager-py (0.1.0-1focal) focal; urgency=high
+
+  * Initial Python camera_info_manager release to Fuerte.
+  * Contributors: Jack O'Quin
+
+ -- Jack O'Quin <jack.oquin@gmail.com>  Wed, 05 Dec 2012 05:00:00 -0000
+
+
