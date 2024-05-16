@@ -1,0 +1,13 @@
+Source: ros-humble-camera-info-manager-py
+Section: misc
+Priority: optional
+Maintainer: Jack O'Quin <jack.oquin@gmail.com>
+Build-Depends: debhelper (>= 9.0.0), python3-pytest <!nocheck>, python3-rospkg, python3-yaml, ros-humble-ament-copyright <!nocheck>, ros-humble-ament-flake8 <!nocheck>, ros-humble-rclpy, ros-humble-sensor-msgs, ros-humble-ros-workspace, python3-all, python3-setuptools, dh-python
+Homepage: http://ros.org/wiki/camera_info_manager_py
+Standards-Version: 3.9.2
+
+Package: ros-humble-camera-info-manager-py
+Architecture: any
+Depends: ${python3:Depends}, ${misc:Depends}, python3-rospkg, python3-yaml, ros-humble-rclpy, ros-humble-sensor-msgs, ros-humble-ros-workspace
+Description: Python interface for camera calibration information.
+ This ROS package provides a CameraInfo interface for Python camera drivers similar to the C++ camera_info_manager package.
