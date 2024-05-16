@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-# Software License Agreement (BSD License)
-#
-# Copyright (C) 2012, Jack O'Quin
+# Copyright 2012, Jack O'Quin
 # All rights reserved.
+#
+# Software License Agreement (BSD License 2.0)
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -14,9 +14,9 @@
 #    copyright notice, this list of conditions and the following
 #    disclaimer in the documentation and/or other materials provided
 #    with the distribution.
-#  * Neither the name of the author nor of other contributors may be
-#    used to endorse or promote products derived from this software
-#    without specific prior written permission.
+#  * Neither the name of Jack O'Quin nor the names of its
+#    contributors may be used to endorse or promote products derived
+#    from this software without specific prior written permission.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 # "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -41,26 +41,26 @@ for drivers written in Python. This is very similar to the
 .. _`sensor_msgs/SetCameraInfo`: http://ros.org/doc/api/sensor_msgs/html/srv/SetCameraInfo.html
 
 """
-# enable some python3 compatibility options:
-from __future__ import absolute_import, print_function, unicode_literals
 
+import errno
+import locale
+import os
+from pathlib import Path
+
+import rclpy
+from rclpy.node import Node
 import rospkg
-import rospy
 from sensor_msgs.msg import CameraInfo
 from sensor_msgs.srv import SetCameraInfo
-from sensor_msgs.srv import SetCameraInfoResponse
-
-import os
-import errno
 import yaml
 
-default_camera_info_url = "file://${ROS_HOME}/camera_info/${NAME}.yaml";
-
+default_camera_info_url = 'file://${ROS_HOME}/camera_info/${NAME}.yaml'
 # parseURL() type codes:
-URL_empty = 0                   # empty string
-URL_file = 1                    # file:
-URL_package = 2                 # package:
-URL_invalid = 3                 # anything >= is invalid
+URL_empty = 0  # empty string
+URL_file = 1  # file:
+URL_package = 2  # package:
+URL_invalid = 3  # anything >= is invalid
+
 
 class CameraInfoError(Exception):
     """
@@ -68,7 +68,7 @@ class CameraInfoError(Exception):
 
     Base class for exceptions in this module.
     """
-    pass
+
 
 class CameraInfoMissingError(CameraInfoError):
     """
@@ -76,9 +76,9 @@ class CameraInfoMissingError(CameraInfoError):
 
     Exception raised when CameraInfo has not been loaded.
     """
-    pass
 
-class CameraInfoManager():
+
+class CameraInfoManager:
     """
     :class:`CameraInfoManager` provides ROS CameraInfo support for
     Python camera drivers. It handles the `sensor_msgs/SetCameraInfo`_
@@ -198,9 +198,10 @@ class CameraInfoManager():
     be called again before the data are accessible.
 
     """
-    def __init__(self, cname='camera', url='', namespace=''):
-        """Constructor.
-        """
+
+    def __init__(self, node: Node, cname='camera', url='', namespace=''):
+        """Constructor."""
+        self.node = node
         self.cname = cname
         self.url = url
         self.camera_info = None
@@ -209,16 +210,15 @@ class CameraInfoManager():
         service_name = 'set_camera_info'
         if namespace:
             service_name = namespace + '/' + service_name
-        rospy.logdebug(service_name + ' service declared')
-        self.svc = rospy.Service(service_name, SetCameraInfo,
-                                 self.setCameraInfo)
+        self.node.get_logger().debug(service_name + ' service declared')
+        self.svc = self.node.create_service(SetCameraInfo, service_name, self.setCameraInfo)
 
     def __str__(self):
-        """:returns: String representation of :class:`CameraInfoManager` """
+        """:returns: String representation of :class:`CameraInfoManager`"""
         return '[' + self.cname + ']' + str(self.utm)
 
     def getCameraInfo(self):
-        """ Get the current camera calibration.
+        """Get the current camera calibration.
 
         The :py:meth:`loadCameraInfo` must have been called since the
         last time the camera name or URL changed.
@@ -234,21 +234,21 @@ class CameraInfoManager():
         return self.camera_info
 
     def getCameraName(self):
-        """ Get the current camera name.
+        """Get the current camera name.
 
         :returns: camera name string
         """
         return self.cname
 
     def getURL(self):
-        """ Get the current calibration URL.
+        """Get the current calibration URL.
 
         :returns: URL string without variable expansion.
         """
         return self.url
 
     def isCalibrated(self):
-        """ Is the current CameraInfo calibrated?
+        """Is the current CameraInfo calibrated?
 
         The :py:meth:`loadCameraInfo` must have been called since the
         last time the camera name or URL changed.
@@ -261,12 +261,11 @@ class CameraInfoManager():
 
         """
         if self.camera_info is None:
-            raise CameraInfoMissingError('Calibration missing, ' +
-                                         'loadCameraInfo() needed.')
+            raise CameraInfoMissingError('Calibration missing, ' + 'loadCameraInfo() needed.')
         return self.camera_info.K[0] != 0.0
 
     def _loadCalibration(self, url, cname):
-        """ Load calibration data (if any available).
+        """Load calibration data (if any available).
 
         This method updates self.camera_info, if possible, based on
         the url and cname parameters.  An empty or non-existent
@@ -287,23 +286,23 @@ class CameraInfoManager():
             self._loadCalibration(default_camera_info_url, cname)
             return
 
-        rospy.loginfo('camera calibration URL: ' + resolved_url)
+        self.node.get_logger().info('camera calibration URL: ' + resolved_url)
 
         if url_type == URL_file:
             self.camera_info = loadCalibrationFile(resolved_url[7:], cname)
 
         elif url_type == URL_package:
             filename = getPackageFileName(resolved_url)
-            if filename == '':          # package not resolved
+            if not filename:  # package not resolved
                 raise CameraInfoMissingError('Calibration package missing.')
             self.camera_info = loadCalibrationFile(filename, cname)
 
         else:
-            rospy.logerr("Invalid camera calibration URL: " + resolved_url)
+            self.node.get_logger().error('Invalid camera calibration URL: ' + resolved_url)
             self.camera_info = CameraInfo()
 
     def loadCameraInfo(self):
-        """ Load currently configured calibration data (if any).
+        """Load currently configured calibration data (if any).
 
         This method updates camera_info, if possible, based on the
         currently-configured URL and camera name.  An empty or
@@ -316,7 +315,7 @@ class CameraInfoManager():
         self._loadCalibration(self.url, self.cname)
 
     def setCameraInfo(self, req):
-        """ Callback for SetCameraInfo request.
+        """Callback for SetCameraInfo request.
 
         :param req: SetCameraInfo request message.
         :returns: SetCameraInfo response message, success is True if
@@ -325,17 +324,16 @@ class CameraInfoManager():
         :post: camera_info updated, can be used immediately without
                reloading.
         """
-        rospy.logdebug('SetCameraInfo received for ' + self.cname)
+        self.node.get_logger().debug('SetCameraInfo received for ' + self.cname)
         self.camera_info = req.camera_info
-        rsp = SetCameraInfoResponse()
-        rsp.success = saveCalibration(req.camera_info,
-                                      self.url, self.cname)
+        rsp = SetCameraInfo.Response()
+        rsp.success = saveCalibration(req.camera_info, self.url, self.cname)
         if not rsp.success:
-            rsp.status_message = "Error storing camera calibration."
+            rsp.status_message = 'Error storing camera calibration.'
         return rsp
 
     def setCameraName(self, cname):
-        """ Set a new camera name.
+        """Set a new camera name.
 
         :param cname: camera name to use for saving calibration data
 
@@ -348,20 +346,20 @@ class CameraInfoManager():
 
         """
         # validate name
-        if cname == '':
-            return False        # name may not be empty
+        if not cname:
+            return False  # name may not be empty
         for ch in cname:
             if not ch.isalnum() and ch != '_':
-                return False    # invalid character
+                return False  # invalid character
 
         # name is valid, use it
         if self.cname != cname:
             self.cname = cname
-            self.camera_info = None     # missing if name changed
+            self.camera_info = None  # missing if name changed
         return True
 
     def setURL(self, url):
-        """ Set the calibration URL.
+        """Set the calibration URL.
 
         :param cname: camera name to use for saving calibration data
 
@@ -373,18 +371,20 @@ class CameraInfoManager():
 
         """
         if parseURL(resolveURL(url, self.cname)) >= URL_invalid:
-            return False                # syntax error
+            return False  # syntax error
 
         # URL looks valid, so use it
         if self.url != url:
             self.url = url
-            self.camera_info = None     # missing if URL changed
+            self.camera_info = None  # missing if URL changed
         return True
+
 
 # related utility functions
 
+
 def genCameraName(from_string):
-    """ Generate a valid camera name.
+    """Generate a valid camera name.
 
     Valid names contain only alphabetic, numeric, or '_'
     characters. All invalid characters in from_string are replaced
@@ -395,8 +395,8 @@ def genCameraName(from_string):
     :returns: a valid camera name based on from_string.
 
     """
-    if from_string == '':
-        return '_'          # name may not be empty
+    if not from_string:
+        return '_'  # name may not be empty
 
     retval = ''
     for i in range(len(from_string)):
@@ -406,8 +406,9 @@ def genCameraName(from_string):
             retval += from_string[i]
     return retval
 
+
 def getPackageFileName(url):
-    """ Get file name corresponding to a `package:` URL.
+    """Get file name corresponding to a `package:` URL.
 
     `param url` fully-resolved Uniform Resource Locator
     `returns` file name if package found, "" otherwise
@@ -415,24 +416,27 @@ def getPackageFileName(url):
     """
     # Scan URL from after "package://" until next '/' and extract
     # package name.  The parseURL() already checked that it's present.
-    prefix_len = len("package://")
+    prefix_len = len('package://')
     rest = url.find('/', prefix_len)
-    package = url[prefix_len: rest]
+    package = url[prefix_len:rest]
 
     # Look up the ROS package path name.
-    pkgPath = ""
+    pkgPath = ''
     rp = rospkg.RosPack()
     try:
         pkgPath = rp.get_path(package)
         pkgPath += url[rest:]
 
     except rospkg.ResourceNotFound:
-        rospy.logwarn("unknown package: " + package + " (ignored)")
+        rclpy.get_logger('camera_info_manager').warning(
+            'unknown package: ' + package + ' (ignored)'
+        )
 
     return pkgPath
 
+
 def loadCalibrationFile(filename, cname):
-    """ Load calibration data from a file.
+    """Load calibration data from a file.
 
     This function returns a `sensor_msgs/CameraInfo`_ message, based
     on the filename parameter.  An empty or non-existent file is *not*
@@ -448,29 +452,36 @@ def loadCalibrationFile(filename, cname):
     """
     ci = CameraInfo()
     try:
-        f = open(filename)
-        calib = yaml.load(f)
-        if calib is not None:
-            if calib['camera_name'] != cname:
-                rospy.logwarn("[" + cname + "] does not match name " +
-                              calib['camera_name'] + " in file " + filename)
+        with Path(filename).open(encoding=locale.getpreferredencoding(False)) as f:
+            calib = yaml.safe_load(f)
+            if calib is not None:
+                if calib['camera_name'] != cname:
+                    rclpy.get_logger('camera_info_manager').warn(
+                        '['
+                        + cname
+                        + '] does not match name '
+                        + calib['camera_name']
+                        + ' in file '
+                        + filename
+                    )
 
-            # fill in CameraInfo fields
-            ci.width = calib['image_width']
-            ci.height = calib['image_height']
-            ci.distortion_model = calib['distortion_model']
-            ci.D = calib['distortion_coefficients']['data']
-            ci.K = calib['camera_matrix']['data']
-            ci.R = calib['rectification_matrix']['data']
-            ci.P = calib['projection_matrix']['data']
+                # fill in CameraInfo fields
+                ci.width = calib['image_width']
+                ci.height = calib['image_height']
+                ci.distortion_model = calib['distortion_model']
+                ci.D = calib['distortion_coefficients']['data']
+                ci.K = calib['camera_matrix']['data']
+                ci.R = calib['rectification_matrix']['data']
+                ci.P = calib['projection_matrix']['data']
 
-    except IOError:                     # OK if file did not exist
+    except OSError:  # OK if file did not exist
         pass
 
     return ci
 
+
 def parseURL(url):
-    """ Parse calibration Uniform Resource Locator.
+    """Parse calibration Uniform Resource Locator.
 
     `param url`: string to parse
     `returns` URL type code
@@ -478,24 +489,25 @@ def parseURL(url):
     `note`: Unsupported URL types have codes >= URL_invalid.
 
     """
-    if url == "":
+    if not url:
         return URL_empty
 
-    if url[0:8].upper() == "FILE:///":
-        return URL_file;
+    if url[0:8].upper() == 'FILE:///':
+        return URL_file
 
-    if url[0:10].upper() == "PACKAGE://":
+    if url[0:10].upper() == 'PACKAGE://':
         # look for a '/' following the package name, make sure it is
         # there, the name is not empty, and something follows it
 
-        rest = url.find('/', 10);
-        if rest < len(url)-1 and rest >= 0:
-            return URL_package;
+        rest = url.find('/', 10)
+        if rest < len(url) - 1 and rest >= 0:
+            return URL_package
 
-    return URL_invalid;
+    return URL_invalid
+
 
 def resolveURL(url, cname):
-    """ Resolve substitution strings in Uniform Resource Locator.
+    """Resolve substitution strings in Uniform Resource Locator.
 
     :param url: URL to resolve, which may include `${...}`
                 substitution variables.
@@ -504,39 +516,39 @@ def resolveURL(url, cname):
     :returns: a copy of the URL with any variable information resolved.
 
     """
-    resolved = ''                # resolved URL to return
-    rest = 0                     # index of remaining string to parse
+    resolved = ''  # resolved URL to return
+    rest = 0  # index of remaining string to parse
 
     while True:
-
         # find the next '$' in the URL string
         dollar = url.find('$', rest)
 
-        if dollar == -1:                # no more '$'s there?
+        if dollar == -1:  # no more '$'s there?
             resolved += url[rest:]
             return resolved
 
         # copy characters up to the next '$'
         resolved += url[rest:dollar]
 
-        if url[dollar+1:dollar+2] != '{':
+        if url[dollar + 1 : dollar + 2] != '{':
             #  no '{' follows, so keep the '$'
             resolved += '$'
 
-        elif url[dollar+1:dollar+7] == '{NAME}':
+        elif url[dollar + 1 : dollar + 7] == '{NAME}':
             # substitute camera name
             resolved += cname
             dollar += 6
 
-        elif url[dollar+1:dollar+11] == '{ROS_HOME}':
+        elif url[dollar + 1 : dollar + 11] == '{ROS_HOME}':
             # substitute $ROS_HOME
             ros_home = os.environ.get('ROS_HOME')
             if ros_home is None:
                 ros_home = os.environ.get('HOME')
                 if ros_home is None:
-                    rospy.logwarn('[CameraInfoManager]' +
-                                  ' unable to resolve ${ROS_HOME}')
-                    ros_home = '${ROS_HOME}' # retain it unresolved
+                    rclpy.get_logger('camera_info_manager').warn(
+                        '[CameraInfoManager]' + ' unable to resolve ${ROS_HOME}'
+                    )
+                    ros_home = '${ROS_HOME}'  # retain it unresolved
                 else:
                     ros_home += '/.ros'
             resolved += ros_home
@@ -544,16 +556,17 @@ def resolveURL(url, cname):
 
         else:
             # not a valid substitution variable
-            rospy.logwarn("[CameraInfoManager]" +
-                         " invalid URL substitution (not resolved): "
-                         + url);
-            resolved += "$";            # keep the bogus '$'
+            rclpy.get_logger('camera_info_manager').warn(
+                '[CameraInfoManager] invalid URL substitution (not resolved): ' + url
+            )
+            resolved += '$'  # keep the bogus '$'
 
         # look for next '$'
         rest = dollar + 1
 
+
 def saveCalibration(new_info, url, cname):
-    """ Save calibration data.
+    """Save calibration data.
 
     This function writes new calibration information to the
     location defined by the url and cname parameters, if possible.
@@ -569,34 +582,37 @@ def saveCalibration(new_info, url, cname):
     url_type = parseURL(resolved_url)
 
     if url_type == URL_empty:
-        return saveCalibration(new_info, default_camera_info_url,
-                               cname)
+        return saveCalibration(new_info, default_camera_info_url, cname)
 
-    rospy.loginfo('writing calibration data to URL: ' + resolved_url)
+    rclpy.get_logger('camera_info_manager').info(
+        'writing calibration data to URL: ' + resolved_url
+    )
 
     if url_type == URL_file:
         success = saveCalibrationFile(new_info, resolved_url[7:], cname)
 
     elif url_type == URL_package:
         filename = getPackageFileName(resolved_url)
-        if filename == '':          # package not resolved
-            rospy.logerr('Calibration package missing: ' +
-                         resolved_url + ' (ignored)')
+        if not filename:  # package not resolved
+            rclpy.get_logger('camera_info_manager').error(
+                'Calibration package missing: ' + resolved_url + ' (ignored)'
+            )
             # treat it like an empty URL
-            success = saveCalibration(new_info, default_camera_info_url,
-                                      cname)
+            success = saveCalibration(new_info, default_camera_info_url, cname)
         else:
             success = saveCalibrationFile(new_info, filename, cname)
 
     else:
-        rospy.logerr("Invalid camera calibration URL: " + resolved_url)
+        rclpy.get_logger('camera_info_manager').error(
+            'Invalid camera calibration URL: ' + resolved_url
+        )
         # treat it like an empty URL
-        success = saveCalibration(new_info, default_camera_info_url,
-                                  cname)
+        success = saveCalibration(new_info, default_camera_info_url, cname)
     return success
 
+
 def saveCalibrationFile(ci, filename, cname):
-    """ Save calibration data to a YAML file.
+    """Save calibration data to a YAML file.
 
     This function writes the new calibration information to a YAML
     file, if possible.
@@ -606,53 +622,59 @@ def saveCalibrationFile(ci, filename, cname):
     :param cname: Camera name.
     :returns: True if able to save the data.
     """
+
+    # make calibration dictionary from CameraInfo fields and camera name
+    calib = {
+        'image_width': ci.width,
+        'image_height': ci.height,
+        'camera_name': cname,
+        'distortion_model': ci.distortion_model,
+        'distortion_coefficients': {'data': ci.D, 'rows': 1, 'cols': len(ci.D)},
+        'camera_matrix': {'data': ci.K, 'rows': 3, 'cols': 3},
+        'rectification_matrix': {'data': ci.R, 'rows': 3, 'cols': 3},
+        'projection_matrix': {'data': ci.P, 'rows': 3, 'cols': 4},
+    }
+
     # make sure the directory exists and the file is writable
-    f = None
     try:
-        f = open(filename, 'w')
-    except IOError as e:
-        if e.errno in set([errno.EACCES, errno.EPERM]):
-            pass
-        elif e.errno in set([errno.ENOENT]):
+        with Path(filename).open('w', encoding=locale.getpreferredencoding(False)) as f:
+            try:
+                yaml.safe_dump(calib, f)
+                return True
+            except OSError:
+                return False  # fail if unable to write file
+    except OSError as e:
+        if e.errno in {errno.EACCES, errno.EPERM}:
+            rclpy.get_logger('camera_info_manager').error('file [' + filename + '] not accessible')
+            return False  # unable to write this file
+        if e.errno in {errno.ENOENT}:
             # Find last slash in the name.  The URL parser ensures
             # there is at least one '/', at the beginning.
             last_slash = filename.rfind('/')
             if last_slash < 0:
-                rospy.logerr("filename [" + filename + "] has no '/'")
-                return False    # not a valid URL
+                rclpy.get_logger('camera_info_manager').error(
+                    'filename [' + filename + "] has no '/'"
+                )
+                return False  # not a valid URL
 
             # try to create the directory and all its parents
-            dirname = filename[0:last_slash+1]
+            dirname = filename[0 : last_slash + 1]
             try:
-                os.makedirs(dirname)
+                Path(dirname).mkdir(parents=True)
             except OSError:
-                rospy.logerr("unable to create path to directory [" +
-                             dirname + "]")
+                rclpy.get_logger('camera_info_manager').error(
+                    'unable to create path to directory [' + dirname + ']'
+                )
                 return False
 
             # try again to create the file
-            try:
-                f = open(filename, 'w')
-            except IOError:
-                pass
+            with Path(filename).open('w', encoding=locale.getpreferredencoding(False)) as f:
+                try:
+                    yaml.safe_dump(calib, f)
+                    return True
 
-    if f is None:               # something went wrong above?
-        rospy.logerr("file [" + filename + "] not accessible")
-        return False            # unable to write this file
-
-    # make calibration dictionary from CameraInfo fields and camera name
-    calib = {'image_width': ci.width,
-             'image_height': ci.height,
-             'camera_name': cname,
-             'distortion_model': ci.distortion_model,
-             'distortion_coefficients': {'data': ci.D, 'rows': 1, 'cols': len(ci.D)},
-             'camera_matrix': {'data': ci.K, 'rows': 3, 'cols': 3},
-             'rectification_matrix': {'data': ci.R, 'rows': 3, 'cols': 3},
-             'projection_matrix': {'data': ci.P, 'rows': 3, 'cols': 4}}
-
-    try:
-        rc = yaml.safe_dump(calib, f)
-        return True
-
-    except IOError:
-        return False            # fail if unable to write file
+                except OSError:
+                    rclpy.get_logger('camera_info_manager').error(
+                        'file [' + filename + '] not accessible'
+                    )
+                    return False  # fail if unable to write file

@@ -2,6 +2,21 @@
 Changelog for package camera_info_manager_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.0 (2024-05-16)
+------------------
+* Ros2 (`#2 <https://github.com/clearpathrobotics/camera_info_manager_py/issues/2>`_)
+  * Run magic converter
+  * Ament_python package
+  * Fix some imports
+  * Remove references to cpp camera info manager.
+  Disable tests
+  * Linting
+  * Fully Remove old tests
+  * Add lint tests
+  * Final tests
+  * Remove pep257 from depends
+* Contributors: Michael Hosmar
+
 0.3.1 (2021-11-18)
 ------------------
 * changelog

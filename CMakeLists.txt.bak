@@ -1,11 +1,13 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.8)
 project(camera_info_manager_py)
+find_package(ament_cmake REQUIRED)
+find_package(rclpy REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
-find_package(catkin REQUIRED COMPONENTS rospy sensor_msgs)
-include_directories(include ${catkin_INCLUDE_DIRS})
+include_directories(include)
 
-catkin_python_setup()
-catkin_package(CATKIN_DEPENDS sensor_msgs)
+ament_export_dependencies(sensor_msgs)
+ament_package()
 
 catkin_install_python(
   PROGRAMS 
@@ -14,9 +16,11 @@ catkin_install_python(
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 # Unit test uses nose, but needs rostest to create a ROS environment.
-if (CATKIN_ENABLE_TESTING)
+if (BUILD_TESTING)
   find_package(roscpp REQUIRED)
   find_package(camera_info_manager REQUIRED)
+
+  find_package(rostest REQUIRED)
   add_executable(generate_camera_info
     tests/generate_camera_info.cpp
     )
@@ -24,8 +28,6 @@ if (CATKIN_ENABLE_TESTING)
   # get added to catkin_LIBRARIES somehow?
   target_link_libraries(generate_camera_info ${catkin_LIBRARIES}
       ${roscpp_LIBRARIES} ${camera_info_manager_LIBRARIES})
-
-  find_package(rostest REQUIRED)
 
   add_rostest(tests/load_cpp_camera_info.test DEPENDENCIES generate_camera_info)
   add_rostest(tests/unit_test.test)
